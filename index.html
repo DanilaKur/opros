@@ -1,565 +1,534 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="dark">
+<html lang="ru" data-theme="light">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Расписание</title>
+<title>Опросник из JSON</title>
 <style>
-  /* Темная тема (по умолчанию) */
-  :root[data-theme="dark"] {
-    --bg: #0e1014; 
-    --card: #171a21; 
-    --card-active: #1c2431;
-    --text: #e8edf5; 
-    --muted: #7f8899; 
-    --accent: #58a6ff;
-    --accent-soft: rgba(88,166,255,.12); 
-    --line: #232833;
-    --break: #2a3542; 
-    --break-current: #33465a;
-    --half-bg: rgba(255,255,255,.02);
-    --shadow-card: none;
-    --shadow-current: 0 8px 24px rgba(88,166,255,.12);
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --border: #e2e5ea;
+    --border-input: #cfd5dd; --text: #1a1a1a; --muted: #6b7280;
+    --preview-bg: #f3f4f6; --preview-text: #374151;
+    --btn-bg: #2563eb; --btn-text: #fff;
+    --btn-secondary-bg: #e5e7eb; --btn-secondary-text: #111;
+    --error: #b91c1c; --ok: #15803d; --divider: #eef0f3;
+    --input-bg: #fff; --input-disabled-bg: #f3f4f6; --input-disabled-text: #9ca3af;
+    --radius: 12px; --radius-sm: 8px;
+    --shadow-panel: 0 1px 2px rgba(0,0,0,.04);
+    --focus-ring: rgba(37,99,235,.15);
   }
-
-  /* Светлая тема */
-  :root[data-theme="light"] {
-    --bg: #f4f7f9; 
-    --card: #ffffff; 
-    --card-active: #f0f7ff;
-    --text: #1e293b; 
-    --muted: #64748b; 
-    --accent: #2563eb;
-    --accent-soft: rgba(37,99,235,.08); 
-    --line: #e2e8f0;
-    --break: #f8fafc; 
-    --break-current: #f0f7ff;
-    --half-bg: rgba(0,0,0,.03);
-    --shadow-card: 0 1px 3px rgba(0,0,0,.04);
-    --shadow-current: 0 8px 24px rgba(37,99,235,.1);
+  [data-theme="dark"] {
+    --bg: #0f1115; --panel: #161a21; --border: #2a2f38;
+    --border-input: #3a4049; --text: #e7eaee; --muted: #9aa3ad;
+    --preview-bg: #1e232b; --preview-text: #c5ccd6;
+    --btn-bg: #3b82f6; --btn-text: #fff;
+    --btn-secondary-bg: #2a2f38; --btn-secondary-text: #e7eaee;
+    --error: #f87171; --ok: #34d399; --divider: #232830;
+    --input-bg: #12161c; --input-disabled-bg: #1a1f26; --input-disabled-text: #6b7280;
+    --shadow-panel: 0 1px 3px rgba(0,0,0,.3);
+    --focus-ring: rgba(59,130,246,.22);
   }
-
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0}
-  
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    background:var(--bg);color:var(--text);
-    padding:16px 14px 40px;min-height:100vh;-webkit-font-smoothing:antialiased;
-    transition: background-color .3s, color .3s;
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    max-width: 880px; margin: 0 auto; padding: 20px 16px 40px;
+    background: var(--bg); color: var(--text); line-height: 1.55;
+    transition: background-color .15s, color .15s;
+    font-size: 15px;
   }
-  
-  /* Шапка */
-  .header{
-    position:sticky; top:0; background:var(--bg); 
-    padding:8px 0 12px; z-index:10;
-    transition: background-color .3s;
-  }
-  .clock{font-size:46px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-1.5px;line-height:1}
-  
-  /* Дата и управление */
-  .top-row{
+  .topbar {
     display: flex; justify-content: space-between; align-items: center;
-    margin-top: 8px; margin-bottom: 14px; gap: 10px;
+    margin-bottom: 20px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
   }
-  .date{color:var(--muted);font-size:14px; flex: 1;}
-  
-  .controls {
-    display: flex; gap: 8px; align-items: center;
+  h1 { font-size: 1.4rem; margin: 0; font-weight: 650; letter-spacing: -.01em; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+    margin-bottom: 16px; box-shadow: var(--shadow-panel);
+    transition: background-color .15s, border-color .15s;
   }
-
-  /* Стилизация выпадающего списка */
-  .mode-select {
-    background: var(--card); color: var(--text);
-    border: 1px solid var(--line); border-radius: 8px;
-    padding: 8px 32px 8px 12px; font-size: 13px; font-family: inherit;
-    font-weight: 600; outline: none; cursor: pointer;
-    appearance: none; -webkit-appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 14px;
-    transition: background-color .3s, border-color .2s, color .3s;
-    box-shadow: var(--shadow-card);
+  label b { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; }
+  textarea, input[type=text], select {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border-input);
+    border-radius: var(--radius-sm); font: inherit; background: var(--input-bg); color: var(--text);
+    transition: border-color .15s, box-shadow .15s, background-color .15s;
   }
-  .mode-select:focus { border-color: var(--accent); }
-
-  /* Кнопка темы */
-  .theme-btn {
-    background: var(--card); color: var(--text);
-    border: 1px solid var(--line); border-radius: 8px;
-    padding: 7px 10px; font-size: 16px; cursor: pointer;
-    transition: background-color .3s, border-color .2s, transform .1s;
-    box-shadow: var(--shadow-card);
-    line-height: 1;
+  textarea:focus, input[type=text]:focus, select:focus {
+    outline: none; border-color: var(--btn-bg);
+    box-shadow: 0 0 0 3px var(--focus-ring);
   }
-  .theme-btn:active { transform: scale(.92); }
-
-  .status{
-    padding:14px 16px;border-radius:14px;
-    background:var(--card);border:1px solid var(--accent);
-    box-shadow: var(--shadow-current);
-    font-size:15px;line-height:1.4; color:var(--text);
-    transition: background-color .3s, border-color .3s;
+  textarea { resize: vertical; }
+  #jsonInput { min-height: 150px; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+  #output { min-height: 150px; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  button {
+    padding: 9px 16px; border: none; border-radius: var(--radius-sm);
+    background: var(--btn-bg); color: var(--btn-text);
+    font: inherit; font-weight: 500; cursor: pointer;
+    transition: filter .15s, background-color .15s, transform .06s;
   }
-  .status b{color:var(--accent);font-variant-numeric:tabular-nums}
-
-  /* Список карточек */
-  .list{display:flex;flex-direction:column;gap:10px;margin-top:18px}
-  .card{
-    background:var(--card);border:1px solid var(--line);border-radius:14px;
-    padding:14px;transition:background-color .3s,border-color .25s,opacity .25s,box-shadow .3s;
-    box-shadow: var(--shadow-card);
+  button:hover { filter: brightness(1.06); }
+  button:active { transform: scale(.98); }
+  button:focus-visible { outline: 2px solid var(--btn-bg); outline-offset: 2px; }
+  button.secondary { background: var(--btn-secondary-bg); color: var(--btn-secondary-text); }
+  button.secondary:hover { filter: brightness(.96); }
+  .error { color: var(--error); margin-top: 10px; font-size: 14px; }
+  .ok { color: var(--ok); margin-top: 10px; font-size: 14px; }
+  .muted { color: var(--muted); }
+  .question { padding: 16px 0; border-top: 1px solid var(--divider); }
+  .question:first-child { border-top: none; padding-top: 0; }
+  .q-text { font-weight: 600; margin-bottom: 10px; font-size: 15px; }
+  .q-body { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+  .q-body > input[type=text], .q-body > textarea, .q-body > select, .q-body > .custom-input { width: 100%; }
+  input[type=radio], input[type=checkbox] {
+    accent-color: var(--btn-bg); width: 16px; height: 16px; cursor: pointer;
+    margin: 0;
   }
-  .card.past{opacity:.45; box-shadow: none;}
-  .card.current{
-    border-color:var(--accent);background:var(--card-active);
-    box-shadow:0 0 0 1px var(--accent), var(--shadow-current);
+  label.opt {
+    display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+    padding: 5px 10px; border-radius: var(--radius-sm);
+    transition: background-color .12s;
   }
-  .pair-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
-  .pair-num{font-size:20px;font-weight:800;color:var(--muted);min-width:28px}
-  .card.current .pair-num{color:var(--accent)}
-  .pair-title{font-size:16px;font-weight:600;flex:1}
-  .pair-time{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
-
-  .halves{display:flex;flex-direction:column;gap:6px}
-  .half{
-    display:flex;justify-content:space-between;align-items:center;
-    padding:8px 12px;border-radius:10px;background:var(--half-bg);
-    font-size:14px;transition:background .2s;
+  label.opt:hover { background: var(--preview-bg); }
+  label.skip { color: var(--muted); }
+  .custom-input:disabled { background: var(--input-disabled-bg); color: var(--input-disabled-text); cursor: not-allowed; }
+  .q-preview {
+    margin-top: 10px; padding: 8px 12px;
+    background: var(--preview-bg); color: var(--preview-text);
+    border-radius: var(--radius-sm); border-left: 3px solid var(--btn-bg);
+    font-size: 13px; font-style: italic;
+    transition: background-color .15s, color .15s;
   }
-  .half-label{color:var(--text)}
-  .half-time{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px}
-  .half.half-current{background:var(--accent-soft)}
-  .half.half-current .half-label{color:var(--accent);font-weight:700}
-
-  .break-card{
-    background:var(--break);border:1px solid var(--line);border-radius:14px;
-    padding:12px 16px;display:flex;justify-content:space-between;align-items:center;
-    font-size:14px;transition:background-color .25s,border-color .25s,opacity .25s;
-  }
-  .card.current .break-card{
-    background:var(--break-current);border-color:var(--accent);
-    box-shadow:0 0 0 1px var(--accent);
-  }
-  .break-title{font-weight:600; color:var(--text);}
-  .break-time{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px}
-  .empty-day{text-align:center;padding:60px 20px;color:var(--muted);font-size:16px}
 </style>
 </head>
 <body>
-<div class="header">
-  <div class="clock" id="clock">--:--:--</div>
-  
-  <div class="top-row">
-    <div class="date" id="date">—</div>
-    <div class="controls">
-      <button class="theme-btn" id="themeBtn" title="Сменить тему">☀️</button>
-      <select class="mode-select" id="modeSelect">
-        <option value="auto">Авто (по дню)</option>
-        <option value="monday">Понедельник</option>
-        <option value="weekday">Вт - Пт</option>
-        <option value="saturday">Суббота</option>
-      </select>
-    </div>
-  </div>
 
-  <div class="status" id="status">Загрузка…</div>
+<div class="topbar">
+  <h1>Опросник из JSON</h1>
+  <button class="theme-btn secondary" id="themeBtn" title="Переключить тему">🌙 Тема</button>
 </div>
-<div class="list" id="list"></div>
+
+<section class="panel">
+  <label><b>JSON с вопросами</b></label>
+  <textarea id="jsonInput" placeholder="Вставьте сюда JSON…"></textarea>
+  <div class="row">
+    <button id="loadBtn">Загрузить</button>
+    <button id="clearBtn" class="secondary">Очистить</button>
+  </div>
+  <div id="jsonError" class="error"></div>
+</section>
+
+<section class="panel">
+  <div id="formTitle" style="font-weight:600; margin-bottom:10px; font-size:16px;"></div>
+  <form id="form"></form>
+</section>
+
+<section class="panel">
+  <label><b>Результат (можно редактировать руками)</b></label>
+  <textarea id="output"></textarea>
+  <div class="row">
+    <button id="copyBtn">Скопировать</button>
+    <button id="refreshBtn" class="secondary">Обновить из ответов</button>
+  </div>
+  <div id="copyStatus" class="ok"></div>
+</section>
 
 <script>
-/* ================= УПРАВЛЕНИЕ ТЕМОЙ ================= */
-const themeBtn = document.getElementById('themeBtn');
-const root = document.documentElement;
+(function () {
+  const jsonInput = document.getElementById('jsonInput');
+  const form = document.getElementById('form');
+  const formTitle = document.getElementById('formTitle');
+  const output = document.getElementById('output');
+  const jsonError = document.getElementById('jsonError');
+  const copyStatus = document.getElementById('copyStatus');
+  const themeBtn = document.getElementById('themeBtn');
 
-let currentTheme = localStorage.getItem('appTheme') || 'dark';
-root.setAttribute('data-theme', currentTheme);
-themeBtn.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+  let questions = [];
 
-themeBtn.addEventListener('click', () => {
-  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  root.setAttribute('data-theme', currentTheme);
-  localStorage.setItem('appTheme', currentTheme);
-  themeBtn.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
-});
-
-
-/* ================= НАСТРОЙКИ РАСПИСАНИЯ ================= */
-
-const BELLS = [
-  { n:1, start:"08:30", end:"10:05" }, 
-  { n:2, start:"10:15", end:"11:50" }, 
-  { n:3, start:"12:20", end:"13:55" }, 
-  { n:4, start:"14:05", end:"15:40" }, 
-  { n:5, start:"15:50", end:"17:25" },
-  { n:6, start:"17:35", end:"19:10" },
-];
-
-/* СУББОТА */
-const SATURDAY_BELLS = [
-  { n:1, start:"08:30", end:"10:05" }, 
-  { n:2, start:"10:15", end:"11:50" }, 
-  { n:3, start:"12:20", end:"13:55" }, 
-  { n:4, start:"14:00", end:"15:35" }, 
-  { n:5, start:"15:40", end:"17:15" },
-  { n:6, start:"17:20", end:"18:55" },
-];
-
-const INTRA_BREAK_MIN = 5;
-
-const BREAKS = {
-  "1-2": "Завтрак",
-  "2-3": "Обед",
-  "3-4": "Перемена после 3-й пары",
-  "4-5": "Перемена после 4-й пары",
-  "5-6": "Перемена после 5-й пары",
-};
-
-/* СУББОТА */
-const SATURDAY_BREAKS = {
-  "1-2": "Перемена",
-  "2-3": "Обед",
-  "3-4": "Перемена",
-  "4-5": "Перемена",
-  "5-6": "Перемена",
-};
-
-const DAY_PAIRS = { 1:6, 2:6, 3:6, 4:6, 5:6, 6:6, 0:6 };
-
-// ==========================================
-// ОСОБОЕ РАСПИСАНИЕ ДЛЯ ПОНЕДЕЛЬНИКА
-// ==========================================
-const MONDAY_ITEMS = [
-  { 
-    kind:"pair", n:0, title:"Разговоры о важном", start:510, end:555, 
-    halves:[ { label:"Разговоры о важном", start:510, end:555 } ]
-  },
-  { kind:"break", title:"Перемена", start:555, end:560 },
-  
-  { 
-    kind:"pair", n:1, start:560, end:660, 
-    halves:[
-      { label:"1-й урок", start:560, end:605 },
-      { label:"Перемена", start:605, end:615 }, 
-      { label:"2-й урок", start:615, end:660 }
-    ]
-  },
-  { kind:"break", title:"Завтрак", start:660, end:665 }, // Завтрак ПОСЛЕ 1-й пары
-  
-  { 
-    kind:"pair", n:2, start:665, end:760, 
-    halves:[
-      { label:"1-й урок", start:665, end:710 },
-      { label:"Перемена", start:710, end:715 },
-      { label:"2-й урок", start:715, end:760 }
-    ]
-  },
-  { kind:"break", title:"Обед", start:760, end:790 },
-  
-  { 
-    kind:"pair", n:3, start:790, end:885, 
-    halves:[
-      { label:"1-й урок", start:790, end:835 },
-      { label:"Перемена", start:835, end:840 },
-      { label:"2-й урок", start:840, end:885 }
-    ]
-  },
-  { kind:"break", title:"Перемена", start:885, end:895 },
-  
-  { 
-    kind:"pair", n:4, start:895, end:990, 
-    halves:[
-      { label:"1-й урок", start:895, end:940 },
-      { label:"Перемена", start:940, end:945 },
-      { label:"2-й урок", start:945, end:990 }
-    ]
-  },
-  { kind:"break", title:"Перемена", start:990, end:1000 },
-  
-  { 
-    kind:"pair", n:5, start:1000, end:1095, 
-    halves:[
-      { label:"1-й урок", start:1000, end:1045 },
-      { label:"Перемена", start:1045, end:1050 },
-      { label:"2-й урок", start:1050, end:1095 }
-    ]
-  },
-  { kind:"break", title:"Перемена", start:1095, end:1105 },
-
-  { 
-    kind:"pair", n:6, start:1105, end:1200, 
-    halves:[
-      { label:"1-й урок", start:1105, end:1150 },
-      { label:"Перемена", start:1150, end:1155 },
-      { label:"2-й урок", start:1155, end:1200 }
-    ]
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    themeBtn.textContent = t === 'dark' ? '☀️ Тема' : '🌙 Тема';
   }
-];
-
-/* ================= ЛОГИКА РАСПИСАНИЯ ================= */
-
-const DAY_NAMES = ["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
-const MONTHS = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
-
-const toMin = hm => { const [h,m]=hm.split(":").map(Number); return h*60+m; };
-const fmtTime = m => String(Math.floor(m/60)).padStart(2,"0")+":"+String(Math.round(m)%60).padStart(2,"0");
-
-function fmtRemain(sec){
-  sec = Math.max(0, Math.floor(sec));
-  const m = Math.floor(sec/60), s = sec%60;
-  if (m >= 60) return `${Math.floor(m/60)} ч ${m%60} мин`;
-  return `${m} мин ${String(s).padStart(2,"0")} с`;
-}
-
-function buildItems(day, bells, dayPairs){
-  const count = dayPairs[day] || 0;
-  const items = [];
-  for (let i = 0; i < count; i++){
-    const bell = bells[i];
-    if (!bell) break;
-    const s = toMin(bell.start), e = toMin(bell.end);
-    const mid = s + (e - s) / 2;
-    const brk = INTRA_BREAK_MIN;
-
-    const halves = [];
-    if (brk > 0){
-      halves.push({ label:"1-й урок", start:s, end:mid-brk/2 });
-      halves.push({ label:"Перемена", start:mid-brk/2, end:mid+brk/2 });
-      halves.push({ label:"2-й урок", start:mid+brk/2, end:e });
-    } else {
-      halves.push({ label:"1-й урок", start:s, end:mid });
-      halves.push({ label:"2-й урок", start:mid, end:e });
-    }
-    items.push({ kind:"pair", n:bell.n, start:s, end:e, halves });
-
-    if (i < count - 1 && bells[i+1]){
-      const next = bells[i+1];
-      const bs = e, be = toMin(next.start);
-      if (be > bs){
-        items.push({
-          kind:"break", n:bell.n, start:bs, end:be,
-          title: BREAKS[`${bell.n}-${next.n}`] || `Перемена после ${bell.n}-й пары`
-        });
-      }
-    }
-  }
-  return items;
-}
-
-/* СУББОТА: своя функция сборки, чтобы были свои названия перемен */
-function buildSaturdayItems(){
-  const count = DAY_PAIRS[6] || 0;
-  const items = [];
-  for (let i = 0; i < count; i++){
-    const bell = SATURDAY_BELLS[i];
-    if (!bell) break;
-    const s = toMin(bell.start), e = toMin(bell.end);
-    const mid = s + (e - s) / 2;
-    const brk = INTRA_BREAK_MIN;
-
-    const halves = [];
-    if (brk > 0){
-      halves.push({ label:"1-й урок", start:s, end:mid-brk/2 });
-      halves.push({ label:"Перемена", start:mid-brk/2, end:mid+brk/2 });
-      halves.push({ label:"2-й урок", start:mid+brk/2, end:e });
-    } else {
-      halves.push({ label:"1-й урок", start:s, end:mid });
-      halves.push({ label:"2-й урок", start:mid, end:e });
-    }
-    items.push({ kind:"pair", n:bell.n, start:s, end:e, halves });
-
-    if (i < count - 1 && SATURDAY_BELLS[i+1]){
-      const next = SATURDAY_BELLS[i+1];
-      const bs = e, be = toMin(next.start);
-      if (be > bs){
-        items.push({
-          kind:"break", n:bell.n, start:bs, end:be,
-          title: SATURDAY_BREAKS[`${bell.n}-${next.n}`] || `Перемена после ${bell.n}-й пары`
-        });
-      }
-    }
-  }
-  return items;
-}
-
-function getScheduleItems(effectiveDay, mode) {
-  if (mode === "monday" || (mode === "auto" && effectiveDay === 1)) {
-    return MONDAY_ITEMS;
-  }
-  if (mode === "saturday" || (mode === "auto" && effectiveDay === 6)) {
-    return buildSaturdayItems();
-  }
-  return buildItems(effectiveDay, BELLS, DAY_PAIRS);
-}
-
-const listEl = document.getElementById("list");
-const clockEl = document.getElementById("clock");
-const dateEl = document.getElementById("date");
-const statusEl = document.getElementById("status");
-const modeSelect = document.getElementById("modeSelect");
-
-let items = [], cardEls = [], lastKey = null, didScroll = false;
-let mode = localStorage.getItem("scheduleMode") || "auto";
-
-if (!["auto", "monday", "weekday", "saturday"].includes(mode)) {
-  mode = "auto";
-}
-modeSelect.value = mode;
-
-modeSelect.addEventListener("change", (e) => {
-  mode = e.target.value;
-  localStorage.setItem("scheduleMode", mode);
-  lastKey = null;
-});
-
-function render(){
-  listEl.innerHTML = ""; cardEls = []; didScroll = false;
-  if (!items.length){
-    listEl.innerHTML = '<div class="empty-day">Сегодня пар нет 🎉</div>';
-    return;
-  }
-  items.forEach(it => {
-    let el;
-    if (it.kind === "pair"){
-      el = document.createElement("div");
-      el.className = "card pair";
-      const halvesHtml = it.halves.map((h, hi) =>
-        `<div class="half" data-half="${hi}">
-           <span class="half-label">${h.label}</span>
-           <span class="half-time">${fmtTime(h.start)}–${fmtTime(h.end)}</span>
-         </div>`
-      ).join("");
-      
-      const pairTitle = it.title || `Пара ${it.n}`;
-      
-      el.innerHTML = `
-        <div class="pair-head">
-          <span class="pair-num">${it.n}</span>
-          <span class="pair-title">${pairTitle}</span>
-          <span class="pair-time">${fmtTime(it.start)}–${fmtTime(it.end)}</span>
-        </div>
-        <div class="halves">${halvesHtml}</div>`;
-    } else {
-      el = document.createElement("div");
-      el.className = "card break";
-      el.innerHTML = `
-        <div class="break-card">
-          <span class="break-title">${it.title}</span>
-          <span class="break-time">${fmtTime(it.start)}–${fmtTime(it.end)}</span>
-        </div>`;
-    }
-    listEl.appendChild(el);
-    cardEls.push(el);
-  });
-}
-
-function tick(){
-  const now = new Date();
-  const realDay = now.getDay();
-  const nowMin = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60 + now.getMilliseconds()/60000;
-
-  clockEl.textContent =
-    String(now.getHours()).padStart(2,"0")+":"+
-    String(now.getMinutes()).padStart(2,"0")+":"+
-    String(now.getSeconds()).padStart(2,"0");
-  dateEl.textContent = `${DAY_NAMES[realDay]}, ${now.getDate()} ${MONTHS[now.getMonth()]}`;
-
-  let effectiveDay = realDay;
-  if (mode === "monday") effectiveDay = 1;
-  if (mode === "weekday") effectiveDay = 2;
-  if (mode === "saturday") effectiveDay = 6;
-
-  const key = mode + ":" + effectiveDay;
-  
-  if (key !== lastKey){
-    lastKey = key;
-    items = getScheduleItems(effectiveDay, mode);
-    render();
-  }
-
-  if (!items.length){
-    statusEl.innerHTML = "<div>Сегодня пар нет 🎉</div>";
-    return;
-  }
-
-  let ci = -1, chi = -1;
-  for (let i = 0; i < items.length; i++){
-    const it = items[i];
-    if (nowMin >= it.start && nowMin < it.end){
-      ci = i;
-      if (it.kind === "pair"){
-        chi = it.halves.findIndex(h => nowMin >= h.start && nowMin < h.end);
-      }
-      break;
-    }
-  }
-
-  cardEls.forEach((el, i) => {
-    const it = items[i];
-    const isPast = nowMin >= it.end;
-    const isCurrent = i === ci;
-    el.classList.toggle("past", isPast && !isCurrent);
-    el.classList.toggle("current", isCurrent);
-    if (it.kind === "pair" && isCurrent){
-      el.querySelectorAll(".half").forEach((he, hi) =>
-        he.classList.toggle("half-current", hi === chi));
-    }
+  themeBtn.addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    applyTheme(cur === 'dark' ? 'light' : 'dark');
   });
 
-  if (ci >= 0 && !didScroll){
-    didScroll = true;
-    cardEls[ci].scrollIntoView({ block:"center", behavior:"smooth" });
+  function el(tag, cls, txt) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (txt != null) e.textContent = txt;
+    return e;
   }
 
-  if (ci >= 0){
-    const it = items[ci];
-    let titleText = "";
-    let currentEnd = it.end;
+  function fillTemplate(tpl, q, value) {
+    return tpl
+      .replace(/\{answer\}/g, value)
+      .replace(/\{question\}/g, q.text)
+      .replace(/\{id\}/g, q.id);
+  }
 
-    if (it.kind === "pair"){
-      const h = it.halves[chi];
-      currentEnd = h.end;
-      if (it.n === 0) {
-        titleText = "Разговоры о важном";
-      } else {
-        const isLesson = h.label.includes("урок");
-        titleText = isLesson ? `${h.label} ${it.n}-й пары` : h.label;
+  function formatList(arr, sep, lastSep) {
+    if (!arr.length) return '';
+    if (arr.length === 1) return arr[0];
+    const s = sep || ', ';
+    const ls = lastSep || s;
+    return arr.slice(0, -1).join(s) + ls + arr[arr.length - 1];
+  }
+
+  function getAnswer(q, i) {
+    const block = form.querySelector('.question[data-index="' + i + '"]');
+    if (!block) return { skipped: true, values: [] };
+
+    if (q.type === 'select') {
+      const sel = block.querySelector('select');
+      if (!sel) return { skipped: true, values: [] };
+      const v = sel.value;
+      if (!v || v === '__skip__') return { skipped: true, values: [] };
+      if (v === '__custom__') {
+        const ci = block.querySelector('.custom-input');
+        const t = ci ? ci.value.trim() : '';
+        return t ? { skipped: false, values: [t] } : { skipped: true, values: [] };
       }
-    } else {
-      titleText = it.title;
+      return { skipped: false, values: [v] };
     }
 
-    // Везде, где мы находимся внутри процесса, пишем "До конца"
-    statusEl.innerHTML =
-      `Сейчас: <b>${titleText}</b><br>`+
-      `До конца — <b>${fmtRemain((currentEnd - nowMin)*60)}</b>`;
-      
-  } else {
-    const next = items.find(x => x.start > nowMin);
-    
-    if (next){
-      // Проверяем, является ли это событие самым первым в списке (утро)
-      if (items[0] === next) {
-        let label = "";
-        if (next.kind === "pair") {
-          label = next.n === 0 ? "Разговоров о важном" : `начала ${next.n}-й пары`;
-        } else {
-          label = `начала ${next.title.toLowerCase()}`;
+    if (q.type === 'radio' || q.type === 'scale') {
+      const c = block.querySelector('input[type=radio]:checked');
+      if (!c) return { skipped: true, values: [] };
+      if (c.value === '__skip__') return { skipped: true, values: [] };
+      if (c.value === '__custom__') {
+        const ci = block.querySelector('.custom-input');
+        const t = ci ? ci.value.trim() : '';
+        return t ? { skipped: false, values: [t] } : { skipped: true, values: [] };
+      }
+      return { skipped: false, values: [c.value] };
+    }
+
+    if (q.type === 'checkbox') {
+      const skip = block.querySelector('.skip-cb');
+      if (skip && skip.checked) return { skipped: true, values: [] };
+      const vals = Array.from(block.querySelectorAll('input.opt:checked')).map(c => c.value);
+      const cc = block.querySelector('.custom-cb');
+      const ci = block.querySelector('.custom-input');
+      if (cc && cc.checked && ci) {
+        const t = ci.value.trim();
+        if (t) vals.push(t);
+      }
+      return vals.length ? { skipped: false, values: vals } : { skipped: true, values: [] };
+    }
+
+    if (q.type === 'text' || q.type === 'textarea') {
+      const skip = block.querySelector('.skip-cb');
+      if (skip && skip.checked) return { skipped: true, values: [] };
+      const inp = block.querySelector('input[type=text], textarea');
+      const t = inp ? inp.value.trim() : '';
+      return t ? { skipped: false, values: [t] } : { skipped: true, values: [] };
+    }
+
+    return { skipped: true, values: [] };
+  }
+
+  function buildLine(q, a) {
+    if (a.skipped) {
+      const tpl = q.skipTemplate || '{question} — не отвечено';
+      return fillTemplate(tpl, q, 'не отвечено');
+    }
+
+    const value = a.values.length > 1
+      ? formatList(a.values, q.listSeparator, q.listLastSeparator)
+      : a.values[0];
+
+    let tpl = q.template;
+    if (!tpl) {
+      tpl = (q.type === 'scale' && q.max)
+        ? '{question} — {answer}/' + q.max
+        : '{question} — {answer}';
+    }
+    return fillTemplate(tpl, q, value);
+  }
+
+  function updateOutput() {
+    const lines = [];
+    questions.forEach((q, i) => {
+      const line = buildLine(q, getAnswer(q, i));
+      lines.push(line);
+      const pv = form.querySelector('.q-preview[data-index="' + i + '"]');
+      if (pv) pv.textContent = '→ ' + line;
+    });
+    output.value = lines.join('\n');
+  }
+
+  function renderForm() {
+    form.innerHTML = '';
+    if (!questions.length) {
+      form.appendChild(el('div', 'muted', 'Вопросов нет. Вставьте JSON и нажмите «Загрузить».'));
+      return;
+    }
+
+    questions.forEach((q, i) => {
+      const block = el('div', 'question');
+      block.dataset.index = i;
+      block.appendChild(el('div', 'q-text', (i + 1) + '. ' + q.text));
+      const body = el('div', 'q-body');
+      const name = 'q_' + i;
+
+      if (q.type === 'radio' || q.type === 'scale') {
+        const opts = (q.type === 'scale')
+          ? Array.from({ length: q.max - q.min + 1 }, (_, k) => String(q.min + k))
+          : q.options;
+
+        opts.forEach(o => {
+          const v = String(o);
+          const lbl = el('label', 'opt');
+          const inp = document.createElement('input');
+          inp.type = 'radio';
+          inp.name = name;
+          inp.value = v;
+          inp.className = 'opt';
+          lbl.appendChild(inp);
+          lbl.appendChild(document.createTextNode(' ' + v));
+          body.appendChild(lbl);
+        });
+
+        const lblC = el('label', 'opt');
+        const inpC = document.createElement('input');
+        inpC.type = 'radio';
+        inpC.name = name;
+        inpC.value = '__custom__';
+        inpC.className = 'opt';
+        lblC.appendChild(inpC);
+        lblC.appendChild(document.createTextNode(' Свой вариант'));
+        body.appendChild(lblC);
+
+        const ci = document.createElement('input');
+        ci.type = 'text';
+        ci.className = 'custom-input';
+        ci.placeholder = 'Впишите свой ответ';
+        ci.disabled = true;
+        body.appendChild(ci);
+
+        const lblS = el('label', 'opt skip');
+        const inpS = document.createElement('input');
+        inpS.type = 'radio';
+        inpS.name = name;
+        inpS.value = '__skip__';
+        lblS.appendChild(inpS);
+        lblS.appendChild(document.createTextNode(' Не буду отвечать'));
+        body.appendChild(lblS);
+      }
+
+      else if (q.type === 'select') {
+        const sel = document.createElement('select');
+        const ph = document.createElement('option');
+        ph.value = '';
+        ph.textContent = '— выберите —';
+        sel.appendChild(ph);
+
+        q.options.forEach(o => {
+          const v = String(o);
+          const op = document.createElement('option');
+          op.value = v; op.textContent = v;
+          sel.appendChild(op);
+        });
+
+        const opC = document.createElement('option');
+        opC.value = '__custom__'; opC.textContent = 'Свой вариант…';
+        sel.appendChild(opC);
+
+        const opS = document.createElement('option');
+        opS.value = '__skip__'; opS.textContent = 'Не буду отвечать';
+        sel.appendChild(opS);
+
+        body.appendChild(sel);
+
+        const ci = document.createElement('input');
+        ci.type = 'text';
+        ci.className = 'custom-input';
+        ci.placeholder = 'Впишите свой ответ';
+        ci.disabled = true;
+        body.appendChild(ci);
+      }
+
+      else if (q.type === 'checkbox') {
+        q.options.forEach(o => {
+          const v = String(o);
+          const lbl = el('label', 'opt');
+          const inp = document.createElement('input');
+          inp.type = 'checkbox';
+          inp.value = v;
+          inp.className = 'opt';
+          lbl.appendChild(inp);
+          lbl.appendChild(document.createTextNode(' ' + v));
+          body.appendChild(lbl);
+        });
+
+        const lblC = el('label', 'opt');
+        const inpC = document.createElement('input');
+        inpC.type = 'checkbox';
+        inpC.className = 'custom-cb';
+        lblC.appendChild(inpC);
+        lblC.appendChild(document.createTextNode(' Свой вариант'));
+        body.appendChild(lblC);
+
+        const ci = document.createElement('input');
+        ci.type = 'text';
+        ci.className = 'custom-input';
+        ci.placeholder = 'Впишите свой ответ';
+        ci.disabled = true;
+        body.appendChild(ci);
+
+        const lblS = el('label', 'opt skip');
+        const cbS = document.createElement('input');
+        cbS.type = 'checkbox';
+        cbS.className = 'skip-cb';
+        lblS.appendChild(cbS);
+        lblS.appendChild(document.createTextNode(' Не буду отвечать'));
+        body.appendChild(lblS);
+      }
+
+      else if (q.type === 'text' || q.type === 'textarea') {
+        const inp = document.createElement(q.type === 'text' ? 'input' : 'textarea');
+        if (q.type === 'text') inp.type = 'text';
+        else inp.rows = 3;
+        inp.placeholder = q.placeholder || '';
+        body.appendChild(inp);
+
+        const lblS = el('label', 'opt skip');
+        const cbS = document.createElement('input');
+        cbS.type = 'checkbox';
+        cbS.className = 'skip-cb';
+        lblS.appendChild(cbS);
+        lblS.appendChild(document.createTextNode(' Не буду отвечать'));
+        body.appendChild(lblS);
+      }
+
+      else {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        body.appendChild(inp);
+      }
+
+      block.appendChild(body);
+      const preview = el('div', 'q-preview');
+      preview.dataset.index = i;
+      preview.textContent = '→ …';
+      block.appendChild(preview);
+      form.appendChild(block);
+    });
+  }
+
+  function loadFromJson() {
+    jsonError.textContent = '';
+    copyStatus.textContent = '';
+
+    const raw = jsonInput.value.trim();
+    if (!raw) { jsonError.textContent = 'Вставьте JSON в поле выше.'; return; }
+
+    let data;
+    try { data = JSON.parse(raw); }
+    catch (err) { jsonError.textContent = 'Ошибка JSON: ' + err.message; return; }
+
+    let list = null, title = '';
+    if (Array.isArray(data)) list = data;
+    else if (data && typeof data === 'object' && Array.isArray(data.questions)) {
+      list = data.questions; title = data.title || '';
+    }
+    if (!list) {
+      jsonError.textContent = 'Нужен массив вопросов или объект с полем "questions".';
+      return;
+    }
+
+    questions = list.map((q, i) => ({
+      id: String(q.id != null ? q.id : 'q' + (i + 1)),
+      type: q.type || 'radio',
+      text: String(q.text || 'Вопрос ' + (i + 1)),
+      options: Array.isArray(q.options) ? q.options.map(String) : [],
+      template: typeof q.template === 'string' ? q.template : null,
+      skipTemplate: typeof q.skipTemplate === 'string' ? q.skipTemplate : null,
+      listSeparator: typeof q.listSeparator === 'string' ? q.listSeparator : ', ',
+      listLastSeparator: typeof q.listLastSeparator === 'string' ? q.listLastSeparator : '',
+      min: Number.isFinite(q.min) ? q.min : 1,
+      max: Number.isFinite(q.max) ? q.max : 10,
+      placeholder: typeof q.placeholder === 'string' ? q.placeholder : ''
+    }));
+
+    formTitle.textContent = title;
+    renderForm();
+    updateOutput();
+  }
+
+  form.addEventListener('change', (e) => {
+    const block = e.target.closest('.question');
+    if (!block) return;
+    const q = questions[Number(block.dataset.index)];
+    if (!q) return;
+
+    if (q.type === 'radio' || q.type === 'scale' || q.type === 'select') {
+      const ci = block.querySelector('.custom-input');
+      if (ci) {
+        const isCustom = e.target.value === '__custom__';
+        ci.disabled = !isCustom;
+        if (isCustom) ci.focus();
+      }
+    } else if (q.type === 'checkbox') {
+      if (e.target.classList.contains('skip-cb')) {
+        if (e.target.checked) {
+          block.querySelectorAll('input[type=checkbox]').forEach(c => { if (c !== e.target) c.checked = false; });
+          const ci = block.querySelector('.custom-input');
+          if (ci) ci.disabled = true;
         }
-        statusEl.innerHTML = `До ${label} — <b>${fmtRemain((next.start - nowMin)*60)}</b>`;
-      } else {
-        // Запасной вариант, если вдруг попали в "дырку" между парами, которой нет в расписании
-        statusEl.innerHTML = `До следующего события — <b>${fmtRemain((next.start - nowMin)*60)}</b>`;
+      } else if (e.target.classList.contains('custom-cb')) {
+        const ci = block.querySelector('.custom-input');
+        if (ci) {
+          ci.disabled = !e.target.checked;
+          if (e.target.checked) ci.focus();
+        }
+        if (e.target.checked) {
+          const skip = block.querySelector('.skip-cb');
+          if (skip) skip.checked = false;
+        }
+      } else if (e.target.classList.contains('opt')) {
+        if (e.target.checked) {
+          const skip = block.querySelector('.skip-cb');
+          if (skip) skip.checked = false;
+        }
       }
-    } else {
-      statusEl.innerHTML = "На сегодня всё 🎉";
+    } else if (q.type === 'text' || q.type === 'textarea') {
+      if (e.target.classList.contains('skip-cb')) {
+        const inp = block.querySelector('input[type=text], textarea');
+        if (inp) inp.disabled = e.target.checked;
+      }
     }
-  }
-}
+    updateOutput();
+  });
 
-tick();
-setInterval(tick, 1000);
+  form.addEventListener('input', updateOutput);
+  document.getElementById('loadBtn').addEventListener('click', loadFromJson);
+  document.getElementById('refreshBtn').addEventListener('click', updateOutput);
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    jsonInput.value = ''; questions = []; form.innerHTML = '';
+    formTitle.textContent = ''; output.value = '';
+    jsonError.textContent = ''; copyStatus.textContent = '';
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    const text = output.value;
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      copyStatus.textContent = 'Скопировано!';
+    } catch (err) {
+      output.select();
+      document.execCommand('copy');
+      copyStatus.textContent = 'Скопировано (через выделение).';
+    }
+    setTimeout(() => { copyStatus.textContent = ''; }, 2000);
+  });
+
+  renderForm();
+})();
 </script>
 </body>
 </html>
