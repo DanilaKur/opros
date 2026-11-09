@@ -280,15 +280,18 @@
           : q.options;
 
         opts.forEach(o => {
-          const v = String(o);
+          // Извлекаем текст и значение безопасно для объектов и строк
+          const optText = (o && typeof o === 'object') ? (o.text || o.label || o.title || JSON.stringify(o)) : String(o);
+          const optValue = (o && typeof o === 'object' && o.value !== undefined) ? String(o.value) : optText;
+
           const lbl = el('label', 'opt');
           const inp = document.createElement('input');
           inp.type = 'radio';
           inp.name = name;
-          inp.value = v;
+          inp.value = optValue;
           inp.className = 'opt';
           lbl.appendChild(inp);
-          lbl.appendChild(document.createTextNode(' ' + v));
+          lbl.appendChild(document.createTextNode(' ' + optText));
           body.appendChild(lbl);
         });
 
@@ -327,9 +330,11 @@
         sel.appendChild(ph);
 
         q.options.forEach(o => {
-          const v = String(o);
+          const optText = (o && typeof o === 'object') ? (o.text || o.label || o.title || JSON.stringify(o)) : String(o);
+          const optValue = (o && typeof o === 'object' && o.value !== undefined) ? String(o.value) : optText;
+          
           const op = document.createElement('option');
-          op.value = v; op.textContent = v;
+          op.value = optValue; op.textContent = optText;
           sel.appendChild(op);
         });
 
@@ -353,14 +358,16 @@
 
       else if (q.type === 'checkbox') {
         q.options.forEach(o => {
-          const v = String(o);
+          const optText = (o && typeof o === 'object') ? (o.text || o.label || o.title || JSON.stringify(o)) : String(o);
+          const optValue = (o && typeof o === 'object' && o.value !== undefined) ? String(o.value) : optText;
+
           const lbl = el('label', 'opt');
           const inp = document.createElement('input');
           inp.type = 'checkbox';
-          inp.value = v;
+          inp.value = optValue;
           inp.className = 'opt';
           lbl.appendChild(inp);
-          lbl.appendChild(document.createTextNode(' ' + v));
+          lbl.appendChild(document.createTextNode(' ' + optText));
           body.appendChild(lbl);
         });
 
@@ -444,7 +451,8 @@
       id: String(q.id != null ? q.id : 'q' + (i + 1)),
       type: q.type || 'radio',
       text: String(q.text || 'Вопрос ' + (i + 1)),
-      options: Array.isArray(q.options) ? q.options.map(String) : [],
+      // Больше не приводим к String здесь, чтобы сохранить объекты для рендера
+      options: Array.isArray(q.options) ? q.options : [],
       template: typeof q.template === 'string' ? q.template : null,
       skipTemplate: typeof q.skipTemplate === 'string' ? q.skipTemplate : null,
       listSeparator: typeof q.listSeparator === 'string' ? q.listSeparator : ', ',
